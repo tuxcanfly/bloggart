@@ -1,5 +1,5 @@
 # Name of the blog
-blog_name = 'Does not computex'
+blog_name = 'Does not compute'
 
 # Your name (used for copyright info)
 author_name = 'Jakh Daven'
