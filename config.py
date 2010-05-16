@@ -1,11 +1,11 @@
 # Name of the blog
-blog_name = 'My Blog'
+blog_name = 'Does not compile'
 
 # Your name (used for copyright info)
-author_name = 'the author'
+author_name = 'Jakh Daven'
 
 # (Optional) slogan
-slogan = 'This is my blog'
+slogan = 'my dev blog'
 
 # The hostname this site will primarially serve off (used for Atom feeds)
 host = 'localhost:8080'
