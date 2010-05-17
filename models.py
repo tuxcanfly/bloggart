@@ -28,6 +28,7 @@ class BlogPost(db.Model):
   published = db.DateTimeProperty()
   updated = db.DateTimeProperty(auto_now=False)
   deps = aetycoon.PickleProperty()
+  page = db.BooleanProperty()
 
   @aetycoon.TransformProperty(tags)
   def normalized_tags(tags):

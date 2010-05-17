@@ -27,7 +27,7 @@ class PostForm(djangoforms.ModelForm):
   draft = forms.BooleanField(required=False)
   class Meta:
     model = models.BlogPost
-    fields = [ 'title', 'body', 'tags' ]
+    fields = [ 'title', 'body', 'tags', 'page' ]
 
 
 def with_post(fun):

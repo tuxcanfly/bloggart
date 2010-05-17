@@ -101,8 +101,10 @@ class PostContentGenerator(ContentGenerator):
     if action == 'delete':
       static.remove(post.path)
       return
+    pages = models.BlogPost.gql("WHERE page = True")
     template_vals = {
         'post': post,
+	'pages': pages,
     }
     prev, next = cls.get_prev_next(post)
     if prev is not None:
@@ -178,11 +180,13 @@ class ListingContentGenerator(ContentGenerator):
     prev_page = cls.path % path_args
     path_args['pagenum'] = pagenum + 1
     next_page = cls.path % path_args
+    pages = models.BlogPost.gql("WHERE page = True")
     template_vals = {
         'generator_class': cls.__name__,
         'posts': posts[:config.posts_per_page],
         'prev_page': prev_page if pagenum > 1 else None,
         'next_page': next_page if more_posts else None,
+	'pages': pages,
     }
     rendered = utils.render_template("listing.html", template_vals)
 

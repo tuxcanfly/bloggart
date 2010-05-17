@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block menu %}
+	{% for page in pages %}
+  	<li><a href="{{config.url_prefix}}{{page.path}}">{{page.title}}</a></li>
+	{% endfor %}
+{% endblock %}
