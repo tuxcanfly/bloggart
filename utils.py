@@ -29,7 +29,7 @@ def slugify(s):
 
 def format_post_path(post, num):
   if post.page:
-    return '/' + str(post.title)
+    return '/' + str(post.title) + '/'
   slug = slugify(post.title)
   if num > 0:
     slug += "-" + str(num)

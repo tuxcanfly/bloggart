@@ -130,8 +130,10 @@ class PostPrevNextContentGenerator(PostContentGenerator):
     post = models.BlogPost.get_by_id(resource)
     if post is None:
       return
+    pages = models.BlogPost.gql("WHERE page = True")
     template_vals = {
         'post': post,
+        'pages': pages,
     }
     prev, next = cls.get_prev_next(post)
     if prev is not None:
