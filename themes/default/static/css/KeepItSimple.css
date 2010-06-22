@@ -259,7 +259,8 @@ input.button {
 #header form#quick-search .tbox {
 	margin: 6px 0 0 5px; 
 	width: 216px;	
-	display: inline;		
+	display: inline;
+	background: none;
 }
 #header #search form#quick-search .btn{
 	width: 25px; height: 25px;		
