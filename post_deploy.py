@@ -1,14 +1,14 @@
 import datetime
 import logging
 import os
-from google.appengine.api.labs import taskqueue
+from google.appengine.api import taskqueue
 from google.appengine.ext import deferred
 
 import config
 import models
 import static
 import utils
-
+import generators
 
 BLOGGART_VERSION = (1, 0, 1)
 
@@ -32,6 +32,19 @@ class PostRegenerator(object):
     if len(posts) == batch_size:
       deferred.defer(self.regenerate, batch_size, posts[-1].published)
 
+class PageRegenerator(object):
+  def __init__(self):
+    self.seen = set()
+
+  def regenerate(self, batch_size=50, start_ts=None):
+    q = models.Page.all().order('-created')
+    q.filter('created <', start_ts or datetime.datetime.max)
+    pages = q.fetch(batch_size)
+    for page in pages:
+      deferred.defer(generators.PageContentGenerator.generate_resource, page, None);
+      page.put()
+    if len(pages) == batch_size:
+      deferred.defer(self.regenerate, batch_size, pages[-1].created)
 
 post_deploy_tasks = []
 
@@ -51,13 +64,11 @@ post_deploy_tasks.append(generate_static_pages([
 
 
 def regenerate_all(previous_version):
-  if previous_version:
-    ver_tuple = (
-      previous_version.bloggart_major,
-      previous_version.bloggart_minor,
-      previous_version.bloggart_rev,
-    )
-  if ver_tuple < BLOGGART_VERSION:
+  if (
+    previous_version.bloggart_major,
+    previous_version.bloggart_minor,
+    previous_version.bloggart_rev,
+  ) < BLOGGART_VERSION:
     regen = PostRegenerator()
     deferred.defer(regen.regenerate)
 
@@ -78,12 +89,17 @@ def run_deploy_task():
   task_name = 'deploy-%s' % os.environ['CURRENT_VERSION_ID'].replace('.', '-')
   try:
     deferred.defer(try_post_deploy, _name=task_name, _countdown=10)
-  except (taskqueue.TaskAlreadyExistsError, taskqueue.TombstonedTaskError), e:
+  except (taskqueue.TaskAlreadyExistsError, taskqueue.taskqueue.TombstonedTaskError), e:
     pass
 
 
-def try_post_deploy():
-  """Runs post_deploy() iff it has not been run for this version yet."""
+def try_post_deploy(force=False):
+  """
+  Runs post_deploy() if it has not been run for this version yet.
+
+  If force is True, run post_deploy() anyway, but don't create a new
+  VersionInfo entity.
+  """
   version_info = models.VersionInfo.get_by_key_name(
       os.environ['CURRENT_VERSION_ID'])
   if not version_info:
@@ -91,13 +107,37 @@ def try_post_deploy():
     q.order('-bloggart_major')
     q.order('-bloggart_minor')
     q.order('-bloggart_rev')
-    post_deploy(q.get())
 
+    version_info = q.get()
 
-def post_deploy(previous_version):
-  """Carries out post-deploy functions, such as rendering static pages."""
+    # This might be an initial deployment; create the first VersionInfo
+    # entity.
+    if not version_info:
+      version_info = models.VersionInfo(
+        key_name=os.environ['CURRENT_VERSION_ID'],
+        bloggart_major = BLOGGART_VERSION[0],
+        bloggart_minor = BLOGGART_VERSION[1],
+        bloggart_rev = BLOGGART_VERSION[2])
+      version_info.put()
+
+      post_deploy(version_info, is_new=False)
+    else:
+      post_deploy(version_info)
+  elif force: # also implies version_info is available
+    post_deploy(version_info, is_new=False)
+
+def post_deploy(previous_version, is_new=True):
+  """
+  Carries out post-deploy functions, such as rendering static pages.
+
+  If is_new is true, a new VersionInfo entity will be created.
+  """
   for task in post_deploy_tasks:
     task(previous_version)
+
+  # don't proceed to create a VersionInfo entity
+  if not is_new:
+    return
 
   new_version = models.VersionInfo(
       key_name=os.environ['CURRENT_VERSION_ID'],
